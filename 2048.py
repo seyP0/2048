@@ -1,15 +1,17 @@
 # 2048 project
+# Se Yeon Bark
 
 import random
+import copy
 
 # create a 4x4 game grid too store the surrent
 # state of the game board. All values start 
 # 0 then generate a single 2
 
-board =[[0,2,2,2]
-	   ,[2,2,0,2]
-	   ,[4,0,0,4]
-	   ,[2,2,0,0]]
+board =[[0,0,0,0]
+	   ,[0,0,0,0]
+	   ,[0,0,0,0]
+	   ,[0,0,0,0]]
 
 Board_size = 4
 
@@ -84,50 +86,51 @@ def WholeReverse (BoardNow):
 	for item in range(Board_size):
 		board[item] = Reverse(board[item])
 	return board
-def MergeRight (BoardNow):
+def MergeRight (board):
 	#Pre: go through the numbers in the board to merge to the left.
 	#Post: reverse the merged numbers to the left to make them go to the right.
 	for i in range (Board_size):
-		BoardNow[i] = Reverse(BoardNow[i])
-		BoardNow[i] = MergeRowLeft(BoardNow[i])
-		BoardNow[i] = Reverse(BoardNow[i])
-	return BoardNow
+		board[i] = Reverse(board[i])
+		board[i] = MergeRowLeft(board[i])
+		board[i] = Reverse(board[i])
+	return board
 
 
-def Transpose (BoardNow):
+def Transpose (board):
 	#Pre: 
 	#Post:
 	for i in range(Board_size):
 		for j in range(i, Board_size):
-			if not i == j:
-				trans = BoardNow[i][j]
-				BoardNow[i][j] = BoardNow[j][i]
-				BoardNow[j][i] = trans
+			if i != j:
+				trans = board[i][j]
+				board[i][j] = board[j][i]
+				board[j][i] = trans
 			
-	return BoardNow
+	return board
 	
 
-def MergeUp (BoardNow):
+def MergeUp (board):
 	#Pre:
 	#Post:
-	BoardNow = Transpose(BoardNow)
-	BoardNow = WholeLeft(BoardNow)
-	BoardNow = Transpose(BoardNow)
-	
-	return BoardNow
+	board = Transpose(board)
+	board = WholeLeft(board)
+	board = Transpose(board)
 
 	
-def MergeDown (BoardNow):
+	
+	return board
+
+	
+def MergeDown (board):
 	#Pre:
 	#Post:
-	BoardNow = Transpose(BoardNow)
-	BoardNow = WholeReverse(BoardNow)
-	BoardNow = WholeLeft(BoardNow)
-	BoardNow = WholeReverse(BoardNow)
-	BoardNow = Transpose(BoardNow)
+	
+	board = Transpose(board)
+	board = MergeRight(board)
+	board = Transpose(board)
 
 	
-	return BoardNow
+	return board
 
 def NewValue():
 	#Pre:
@@ -137,42 +140,90 @@ def NewValue():
 	else:
 		return 2
 
-def MoreValues():
-	#Pre:
-	#Post:
-	RowNum = 
-	ColNum = 
-	while board[RowNum][ColNum] != 0:
-		
-# A blank board
-board = []
-for i in range (Board_size):
-	row = []
-	for n in range (Board_size):
-		row.append(0)
-	board.append(row)
+def AddNewValue(board):
+	empty_spot = []
+	for r in range(Board_size):
+		for c in range(Board_size):
+			if board[r][c] == 0:
+				empty_spot.append((r,c))
+	if empty_spot:
+		r,c = random.choice(empty_spot)
+		board[r][c] = NewValue()
 
-NeededSpots = 2
-while NeededSpots > 0:
-	RowNum = random.randint(0,Board_size-1)
-	ColNum = random.randint(0,Board_size-1)
-	if board[RowNum][ColNum] == 0:
-		board[RowNum][ColNum] = NewValue()
-		NeededSpots -= 1
-Display(board)
+def CanMove(board):
+	# check if any empty spots are available
+	for row in board:
+		if 0 in row:
+			return True
+		
+	
+	# check for possible horizontal spots are available
+	for row in board:
+		for i in range(Board_size-1):
+			if row[i] == row[i+1]:
+				return True
+			
+	# check for possible vertical spots are available
+	transposed = Transpose(board)
+	for row in transposed:
+		for j in range(Board_size-1):
+			if row[j] == row[j+1]:
+				return True
+			
+	return False
+
+# Display two numbers randomly on the board
+AddNewValue(board)
+AddNewValue(board)
+		
+# Main game loop
+game_won = False
+
 
 while True:
-	Movement = input("Direction you would like to move: ")
+	Display(board)
 
-	if Movement == 'u':
-		board = MergeUp(board)
-		Display(board)
+	if not CanMove(board):
+		print("Game Over!")
+		break
+	
+	if game_won:
+		print("You win!")
+		break
+	
+	Movement = input("Direction you would like to move: ")
+	new_board = None
+
+	# copy.deepcopy(board) = row[:] for row in board
+
+	if Movement == 'w':
+		new_board = MergeUp(copy.deepcopy(board))
+		# [row[:] for row in board] => creates deep copy of the board when making a move
+		# Deep copy keeps the original board unchanged during the move process 
+	elif Movement == 's':
+		new_board = MergeDown([row[:] for row in board])
+	elif Movement == 'a':
+		new_board = WholeLeft([row[:] for row in board])
 	elif Movement == 'd':
-		board = MergeDown(board)
-		Display(board)
-	elif Movement == 'r':
-		board = MergeRight(board)
-		Display(board)
-	elif Movement == 'l':
-		board = WholeLeft(board)
-		Display(board)
+		new_board = MergeRight([row[:] for row in board])
+
+	if new_board != board:
+		board = new_board
+		AddNewValue(board)
+
+
+	else:
+		# Invalid move shows up when numbers can't add up although there is spaces left
+		print()
+		print("Invalid move")
+	
+	for a in range(Board_size):
+		for b in range(Board_size):
+			if board[a][b] == 2048:
+				game_won = True
+				break
+		if game_won:
+			break
+		
+	
+		
